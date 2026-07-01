@@ -186,11 +186,16 @@ footer{padding:20px 0 48px;font-size:11px;font-weight:400;letter-spacing:.03em;c
 }
 #shuffle:hover{background:var(--ink);color:var(--paper)}
 .legend{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.cloud{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 26px;padding:6px 0 110px}
-.cloud button{
-  background:none;border:none;color:var(--ink);
-  letter-spacing:-.02em;line-height:1.05;padding:0;
+.cloud{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:30px 28px;align-items:end;padding:6px 0 110px;
 }
+.cloud button{
+  background:none;border:none;color:var(--ink);text-align:left;
+  letter-spacing:-.02em;line-height:1.02;padding:0;overflow-wrap:anywhere;
+}
+.cloud button.big{grid-column:span 2}
+@media(max-width:480px){.cloud{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:24px 20px}}
 .cloud button:hover{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .cloud button.inthread{color:var(--red)}
 .hidden{display:none!important}
@@ -380,11 +385,17 @@ function fillExtras(slug){
   }
   box.innerHTML=html;
 }
+let pendingJump=null;
 function jumpToTerm(slug){
-  go('#/index');
   clearSearch(false);
   toggleTerm(slug,true);
-  document.getElementById('term-'+slug).scrollIntoView({block:'center'});
+  const el=document.getElementById('term-'+slug);
+  if(!document.getElementById('view-index').classList.contains('hidden')){
+    if(el.scrollIntoView) el.scrollIntoView({block:'center'});
+  }else{
+    pendingJump=slug;
+    go('#/index');
+  }
 }
 
 /* ---- search + alphabet ---- */
@@ -487,10 +498,10 @@ function renderCloud(){
   const sample=pool.slice(0,72);
   document.getElementById('cloud').innerHTML = sample.map(t=>{
     const refs = inbound[t.s]||0;
-    const fs = Math.round(14 + Math.min(refs,20)*2.1);
+    const fs = Math.round(14 + Math.min(refs,18)*1.8);
     const fw = refs>7 ? 700 : 400;
-    const cls = inThreads[t.s] ? ' class="inthread"' : '';
-    return '<button'+cls+' style="font-size:'+fs+'px;font-weight:'+fw+'" title="'+escHtml(t.d)+
+    const cls = [inThreads[t.s]?'inthread':'', refs>=8?'big':''].filter(Boolean).join(' ');
+    return '<button'+(cls?' class="'+cls+'"':'')+' style="font-size:'+fs+'px;font-weight:'+fw+'" title="'+escHtml(t.d)+
       '" onclick="jumpToTerm(\''+t.s+'\')">'+escHtml(t.t)+'</button>';
   }).join('');
 }
@@ -514,7 +525,12 @@ function route(){
   document.getElementById('tab-index').setAttribute('aria-selected', view==='index');
   document.getElementById('tab-cloud').setAttribute('aria-selected', view==='cloud');
   document.getElementById('tab-threads').setAttribute('aria-selected', view==='threads'||view==='thread');
-  window.scrollTo(0,0);
+  if(view==='index' && pendingJump){
+    const el=document.getElementById('term-'+pendingJump); pendingJump=null;
+    if(el && el.scrollIntoView) el.scrollIntoView({block:'center'});
+  }else{
+    window.scrollTo(0,0);
+  }
 }
 window.addEventListener('hashchange',route);
 applyFilter();
